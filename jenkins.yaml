@@ -40,7 +40,7 @@ items:
         initContainers:
         - name: init-myservice
           image: busybox:1.28
-          command: ['sh', '-c', 'touch /var/lib/jenkins/this-is-test-file']
+          command: ['sh', '-c', 'cd /var/lib/jenkins && wget https://raw.githubusercontent.com/Dimss/kbit-devops/master/hudson.plugins.sonar.SonarGlobalConfiguration.xml && wget https://raw.githubusercontent.com/Dimss/kbit-devops/master/org.quality.gates.jenkins.plugin.GlobalConfig.xml']
           volumeMounts:
           - mountPath: /var/lib/jenkins
             name: jenkins-data

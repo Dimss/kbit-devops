@@ -3,7 +3,7 @@
     <installations>
         <hudson.plugins.sonar.SonarInstallation>
             <name>SonarQube1</name>
-            <serverUrl>http://sonarqube.server</serverUrl>
+            <serverUrl>__SONAR_UI_URL__</serverUrl>
             <credentialsId></credentialsId>
             <mojoVersion></mojoVersion>
             <additionalProperties></additionalProperties>
