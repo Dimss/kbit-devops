@@ -1,68 +1,96 @@
-apiVersion: v1
-items:
-- apiVersion: route.openshift.io/v1
+apiVersion: template.openshift.io/v1
+kind: Template
+labels:
+  app: jenkins-ephemeral
+  template: jenkins-ephemeral-template
+message: A Jenkins service has been created in your project.  Log into Jenkins with
+  your OpenShift account.  The tutorial at https://github.com/openshift/origin/blob/master/examples/jenkins/README.md
+  contains more information about using this template.
+metadata:
+  annotations:
+    description: |-
+      Jenkins service, without persistent storage.
+
+      WARNING: Any data stored will be lost upon pod destruction. Only use this template for testing.
+    iconClass: icon-jenkins
+    openshift.io/display-name: Jenkins (Ephemeral)
+    openshift.io/documentation-url: https://docs.okd.io/latest/using_images/other_images/jenkins.html
+    openshift.io/long-description: This template deploys a Jenkins server capable
+      of managing OpenShift Pipeline builds and supporting OpenShift-based oauth login.  The
+      Jenkins configuration is stored in non-persistent storage, so this configuration
+      should be used for experimental purposes only.
+    openshift.io/provider-display-name: Red Hat, Inc.
+    openshift.io/support-url: https://access.redhat.com
+    samples.operator.openshift.io/version: 4.2.0-0.nightly-2019-09-27-191818
+    tags: instant-app,jenkins
+  creationTimestamp: "2019-09-30T18:57:54Z"
+  labels:
+    samples.operator.openshift.io/managed: "true"
+  name: jenkins-ephemeral
+  namespace: openshift
+  resourceVersion: "8920"
+  selfLink: /apis/template.openshift.io/v1/namespaces/openshift/templates/jenkins-ephemeral
+  uid: 35ec2f9b-e3b4-11e9-b01b-0a580a80001b
+objects:
+- apiVersion: v1
   kind: Route
   metadata:
     annotations:
       haproxy.router.openshift.io/timeout: 4m
       template.openshift.io/expose-uri: http://{.spec.host}{.spec.path}
-    labels:
-      app: jenkins-ephemeral
-      template: jenkins-ephemeral-template
-    name: jenkins
+    name: ${JENKINS_SERVICE_NAME}
   spec:
     tls:
       insecureEdgeTerminationPolicy: Redirect
       termination: edge
     to:
       kind: Service
-      name: jenkins
-- apiVersion: apps.openshift.io/v1
+      name: ${JENKINS_SERVICE_NAME}
+- apiVersion: v1
   kind: DeploymentConfig
   metadata:
     annotations:
       template.alpha.openshift.io/wait-for-ready: "true"
-    labels:
-      app: jenkins-ephemeral
-      template: jenkins-ephemeral-template
-    name: jenkins
+    name: ${JENKINS_SERVICE_NAME}
   spec:
     replicas: 1
     selector:
-      name: jenkins
+      name: ${JENKINS_SERVICE_NAME}
     strategy:
       type: Recreate
     template:
       metadata:
         labels:
-          name: jenkins
+          name: ${JENKINS_SERVICE_NAME}
       spec:
-        initContainers:
-        - name: init-myservice
-          image: busybox:1.28
-          command: ['sh', '-c', 'cd /var/lib/jenkins && wget https://raw.githubusercontent.com/Dimss/kbit-devops/master/hudson.plugins.sonar.SonarGlobalConfiguration.xml && wget https://raw.githubusercontent.com/Dimss/kbit-devops/master/org.quality.gates.jenkins.plugin.GlobalConfig.xml']
-          volumeMounts:
-          - mountPath: /var/lib/jenkins
-            name: jenkins-data
+#        initContainers:
+#        - name: sonar-init-config
+#          image: dimssss/sonar-init:0.2
+#          env:
+#          - name: SONAR_UI_URL
+#            value: ${SONAR_UI_URL}
+#          volumeMounts:
+#          - mountPath: /var/lib/jenkins
+#            name: jenkins-data
         containers:
         - capabilities: {}
           env:
           - name: OPENSHIFT_ENABLE_OAUTH
-            value: "true"
+            value: ${ENABLE_OAUTH}
           - name: OPENSHIFT_ENABLE_REDIRECT_PROMPT
             value: "true"
           - name: DISABLE_ADMINISTRATIVE_MONITORS
-            value: "false"
+            value: ${DISABLE_ADMINISTRATIVE_MONITORS}
           - name: KUBERNETES_MASTER
             value: https://kubernetes.default:443
           - name: KUBERNETES_TRUST_CERTIFICATES
             value: "true"
           - name: JENKINS_SERVICE_NAME
-            value: jenkins
+            value: ${JENKINS_SERVICE_NAME}
           - name: JNLP_SERVICE_NAME
-            value: jenkins-jnlp
+            value: ${JNLP_SERVICE_NAME}
           - name: JENKINS_UC_INSECURE
-            value: "false"
+            value: ${JENKINS_UC_INSECURE}
           - name: INSTALL_PLUGINS
             value: "sonar-quality-gates:1.3.1,sonar:2.9"
           image: ' '
@@ -84,21 +112,21 @@ items:
             timeoutSeconds: 240
           resources:
             limits:
-              memory: 4Gi
+              memory: ${MEMORY_LIMIT}
           securityContext:
             capabilities: {}
             privileged: false
           terminationMessagePath: /dev/termination-log
           volumeMounts:
           - mountPath: /var/lib/jenkins
-            name: jenkins-data
+            name: ${JENKINS_SERVICE_NAME}-data
         dnsPolicy: ClusterFirst
         restartPolicy: Always
-        serviceAccountName: jenkins
+        serviceAccountName: ${JENKINS_SERVICE_NAME}
         volumes:
         - emptyDir:
             medium: ""
-          name: jenkins-data
+          name: ${JENKINS_SERVICE_NAME}-data
     triggers:
     - imageChangeParams:
         automatic: true
@@ -106,8 +134,8 @@ items:
         - jenkins
         from:
           kind: ImageStreamTag
-          name: jenkins:2
-          namespace: openshift
+          name: ${JENKINS_IMAGE_STREAM_TAG}
+          namespace: ${NAMESPACE}
         lastTriggeredImage: ""
       type: ImageChange
     - type: ConfigChange
@@ -115,31 +143,22 @@ items:
   kind: ServiceAccount
   metadata:
     annotations:
-      serviceaccounts.openshift.io/oauth-redirectreference.jenkins: '{"kind":"OAuthRedirectReference","apiVersion":"v1","reference":{"kind":"Route","name":"jenkins"}}'
-    labels:
-      app: jenkins-ephemeral
-      template: jenkins-ephemeral-template
-    name: jenkins
-- apiVersion: authorization.openshift.io/v1
+      serviceaccounts.openshift.io/oauth-redirectreference.jenkins: '{"kind":"OAuthRedirectReference","apiVersion":"v1","reference":{"kind":"Route","name":"${JENKINS_SERVICE_NAME}"}}'
+    name: ${JENKINS_SERVICE_NAME}
+- apiVersion: v1
   groupNames: null
   kind: RoleBinding
   metadata:
-    labels:
-      app: jenkins-ephemeral
-      template: jenkins-ephemeral-template
-    name: jenkins_edit
+    name: ${JENKINS_SERVICE_NAME}_edit
   roleRef:
     name: edit
   subjects:
   - kind: ServiceAccount
-    name: jenkins
+    name: ${JENKINS_SERVICE_NAME}
 - apiVersion: v1
   kind: Service
   metadata:
-    labels:
-      app: jenkins-ephemeral
-      template: jenkins-ephemeral-template
-    name: jenkins-jnlp
+    name: ${JNLP_SERVICE_NAME}
   spec:
     ports:
     - name: agent
@@ -148,20 +167,17 @@ items:
       protocol: TCP
       targetPort: 50000
     selector:
-      name: jenkins
+      name: ${JENKINS_SERVICE_NAME}
     sessionAffinity: None
     type: ClusterIP
 - apiVersion: v1
   kind: Service
   metadata:
     annotations:
-      service.alpha.openshift.io/dependencies: '[{"name": "jenkins-jnlp", "namespace":
-        "", "kind": "Service"}]'
+      service.alpha.openshift.io/dependencies: '[{"name": "${JNLP_SERVICE_NAME}",
+        "namespace": "", "kind": "Service"}]'
       service.openshift.io/infrastructure: "true"
-    labels:
-      app: jenkins-ephemeral
-      template: jenkins-ephemeral-template
-    name: jenkins
+    name: ${JENKINS_SERVICE_NAME}
   spec:
     ports:
     - name: web
@@ -170,8 +186,48 @@ items:
       protocol: TCP
       targetPort: 8080
     selector:
-      name: jenkins
+      name: ${JENKINS_SERVICE_NAME}
     sessionAffinity: None
     type: ClusterIP
-kind: List
-metadata: {}
+parameters:
+- description: The name of the OpenShift Service exposed for the Jenkins container.
+  displayName: Jenkins Service Name
+  name: JENKINS_SERVICE_NAME
+  value: jenkins
+- description: The name of the service used for master/slave communication.
+  displayName: Jenkins JNLP Service Name
+  name: JNLP_SERVICE_NAME
+  value: jenkins-jnlp
+- description: Whether to enable OAuth OpenShift integration. If false, the static
+    account 'admin' will be initialized with the password 'password'.
+  displayName: Enable OAuth in Jenkins
+  name: ENABLE_OAUTH
+  value: "false"
+- description: Maximum amount of memory the container can use.
+  displayName: Memory Limit
+  name: MEMORY_LIMIT
+  value: 4Gi
+- description: The OpenShift Namespace where the Jenkins ImageStream resides.
+  displayName: Jenkins ImageStream Namespace
+  name: NAMESPACE
+  value: openshift
+- description: Whether to perform memory intensive, possibly slow, synchronization
+    with the Jenkins Update Center on start.  If true, the Jenkins core update monitor
+    and site warnings monitor are disabled.
+  displayName: Disable memory intensive administrative monitors
+  name: DISABLE_ADMINISTRATIVE_MONITORS
+  value: "false"
+- description: Name of the ImageStreamTag to be used for the Jenkins image.
+  displayName: Jenkins ImageStreamTag
+  name: JENKINS_IMAGE_STREAM_TAG
+  value: jenkins:2
+- description: Whether to allow use of a Jenkins Update Center that uses invalid certificate
+    (self-signed, unknown CA). If any value other than 'false', certificate check
+    is bypassed. By default, certificate check is enforced.
+  displayName: Allows use of Jenkins Update Center repository with invalid SSL certificate
+  name: JENKINS_UC_INSECURE
+  value: "false"
+- description: SonarQube UI Route URL
+  displayName: SonarQube UI Route URL
+  name: SONAR_UI_URL
+  value: "http://sonarqube-kbit-devops.apps.elbit.kbit.ocplab.io"
