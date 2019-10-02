@@ -3,7 +3,7 @@
     <enabled>true</enabled>
     <server></server>
     <namespaces>
-        <string>kbit-devops</string>
+        <string>__BC_SYNC_TARGET_NS__</string>
     </namespaces>
     <foldersEnabled>true</foldersEnabled>
     <jobNamePattern></jobNamePattern>
