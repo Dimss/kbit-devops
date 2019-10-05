@@ -19,33 +19,32 @@ spec:
     port: 8080
     targetPort: 8080
 ---
-kind: DeploymentConfig
-apiVersion: "v1"
+apiVersion: apps/v1
+kind: Deployment
 metadata:
+  name: report-nginx
   labels:
-    app: "report-nginx"
-  name: "report-nginx"
+    app: report-nginx
 spec:
   replicas: 1
+  selector:
+    matchLabels:
+      app: report-nginx
   template:
     metadata:
       labels:
-        app: "report-nginx"
+        app: report-nginx
     spec:
       containers:
-      - name: "report-nginx"
-        image: " "
-        imagePullPolicy: Always
+      - name: report-nginx
+        image: docker.io/dimssss/nginx-for-ocp:latest
         ports:
         - containerPort: 8080
-  triggers:
-    - type: "ConfigChange"
-    - type: "ImageChange"
-      imageChangeParams:
-        automatic: true
-        containerNames:
-          - "report-nginx"
-        from:
-          kind: "ImageStreamTag"
-          name: "nginx:latest"
-          namespace: "openshift"
+        volumeMounts:
+        - name: report-kbit-tests
+          mountPath: /opt/app-root/src
+      volumes:
+        - name: report-kbit-tests
+          configMap:
+            name: report-kbit-tests
+

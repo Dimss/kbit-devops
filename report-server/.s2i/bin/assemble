@@ -1,1 +1,1 @@
-echo "This is assemble"
+cp /tmp/src/nginx.conf /etc/nginx
