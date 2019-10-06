@@ -37,14 +37,23 @@ spec:
     spec:
       containers:
       - name: report-nginx
-        image: docker.io/dimssss/nginx-for-ocp:latest
+        image: docker.io/dimssss/nginx-for-ocp:0.1
         ports:
         - containerPort: 8080
         volumeMounts:
-        - name: report-kbit-tests
+        - name: kbit-test-reports
           mountPath: /opt/app-root/src
       volumes:
-        - name: report-kbit-tests
+        - name: kbit-test-reports
           configMap:
-            name: report-kbit-tests
+            name: kbit-test-reports
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kbit-test-reports
+
+
+
+
 
